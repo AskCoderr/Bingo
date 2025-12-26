@@ -75,5 +75,9 @@ public class BingoGUI extends JFrame {
 	public void setOnPlayerMoveCallback(Runnable callback) {
 		this.onPlayerMoveCallback = callback;
 	}
+	
+	public int getSelectedMove() {
+    return this.selectedMove != null ? this.selectedMove : -1;
+}
 
 }

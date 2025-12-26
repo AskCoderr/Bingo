@@ -5,12 +5,15 @@ import javax.swing.JOptionPane;
 public class BingoGameController {
     GameState gameState;
     BingoBoardAnalyser bingoBoardAnalyser;
-    BingoGUI bingoGUI;
+    BingoGUI playerGUI; // Renamed for clarity
+    BingoGUI computerGUI; // Added to manage the computer's interface
 
-    public BingoGameController(BingoBoard board, BingoBoard compBoard, GameState gameState, BingoGUI bingoGUI) {
+    // Updated constructor to accept both GUIs
+    public BingoGameController(BingoBoard board, BingoBoard compBoard, GameState gameState, BingoGUI playerGUI, BingoGUI computerGUI) {
         this.bingoBoardAnalyser = new BingoBoardAnalyser(board, compBoard, gameState);
         this.gameState = gameState;
-        this.bingoGUI = bingoGUI;
+        this.playerGUI = playerGUI;
+        this.computerGUI = computerGUI;
     }
 
     public void setGameState() {
@@ -27,56 +30,60 @@ public class BingoGameController {
                 options[0]);
 
         if (choice == 0) {
-            gameState.playerTurn();
+            gameState.playerTurn(); //
         } else {
-            gameState.computerTurn();
+            gameState.computerTurn(); //
         }
     }
 
     public void nextStep() {
-        if (gameState.isPlayerTurn()) {
+        if (gameState.isPlayerTurn()) { //
             startPlayerTurn();
-        } else if (gameState.isComputerTurn()) {
+        } else if (gameState.isComputerTurn()) { //
             startComputerTurn();
         }
     }
 
     private void startPlayerTurn() {
-        bingoGUI.setInputEnabled(true);
+        playerGUI.setInputEnabled(true); // Enable player interaction
+        computerGUI.setInputEnabled(false); // Ensure computer board is non-interactive
 
-        bingoGUI.setOnPlayerMoveCallback(() -> {
-            bingoGUI.setInputEnabled(false);
+        playerGUI.setOnPlayerMoveCallback(() -> {
+            playerGUI.setInputEnabled(false);
 
-            // player has played exactly ONE move here
+            int move = playerGUI.getSelectedMove(); 
+            bingoBoardAnalyser.applyMoveToBoth(move);
 
-            if (bingoBoardAnalyser.evaluateBoard()) {
+            // Logic to check win condition after player move
+            if (bingoBoardAnalyser.evaluateBoard()) { //
                 endGame();
                 return;
             }
 
-            gameState.computerTurn();
-            nextStep(); // advance state
+            gameState.computerTurn(); //
+            nextStep(); 
         });
     }
 
     private void startComputerTurn() {
-        bingoGUI.setInputEnabled(false);
+        playerGUI.setInputEnabled(false);
+        computerGUI.setInputEnabled(false); // Computer board stays disabled for user input
 
-        bingoBoardAnalyser.makeNextMove();
+        bingoBoardAnalyser.makeNextMove(); //
 
-        if (bingoBoardAnalyser.evaluateBoard()) {
+        // Logic to check win condition after computer move
+        if (bingoBoardAnalyser.evaluateBoard()) { //
             endGame();
             return;
         }
 
-        gameState.playerTurn();
-
-        nextStep(); // advance state
+        gameState.playerTurn(); //
+        nextStep(); 
     }
 
     private void endGame() {
-        bingoGUI.setInputEnabled(false);
+        playerGUI.setInputEnabled(false); //
+        computerGUI.setInputEnabled(false); // Lock the computer board at game end
         JOptionPane.showMessageDialog(null, "Game Over!");
     }
-
 }
