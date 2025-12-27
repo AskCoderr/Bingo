@@ -1,16 +1,12 @@
 package Bingo;
 
-import java.util.*;
-
 public class Node {
-	int value;
-	boolean marked;
-	List<Node> neighbors;
+    int value;
+    boolean marked;
 
-	public Node(int value) {
-		this.value = value;
-		this.marked = false;
-		this.neighbors = new ArrayList<>();
-	}
-
+    public Node(int value) {
+        this.value = value;
+        this.marked = false;
+    }
 }
+
