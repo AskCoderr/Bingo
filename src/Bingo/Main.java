@@ -1,26 +1,47 @@
 package Bingo;
 
-public class Main {
-    public static void main(String[] args) {
-        // 1. Create the data models
-        BingoBoard playerBoard = new BingoBoard();
-        BingoBoard computerBoard = new BingoBoard();
+import javax.swing.JOptionPane;
 
-        // 2. Create the Player UI
+public class Main {
+
+    public static void main(String[] args) {
+
+        String[] options = {"3x3", "4x4", "5x5"};
+        String choice = (String) JOptionPane.showInputDialog(
+                null,
+                "Select Bingo Board Size",
+                "Bingo",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+
+        if (choice == null) System.exit(0);
+
+        int size;
+        if (choice.equals("3x3")) size = 3;
+        else if (choice.equals("4x4")) size = 4;
+        else size = 5;
+
+        BingoBoard playerBoard = new BingoBoard(size);
+        BingoBoard computerBoard = new BingoBoard(size);
+
         BingoGUI playerGUI = new BingoGUI(playerBoard);
         playerGUI.setTitle("Player Board");
 
-        // 3. Create the Computer UI
         BingoGUI computerGUI = new BingoGUI(computerBoard);
         computerGUI.setTitle("Computer Board");
-        computerGUI.setLocation(450, 0); 
+        computerGUI.setLocation(150 * size, 0);
 
-        // 4. Initialize State and Controller
-        GameState state = new GameState();
-        BingoGameController controller = new BingoGameController(playerBoard, computerBoard, state, playerGUI, computerGUI);
+        BingoGameController controller =
+                new BingoGameController(
+                        playerBoard,
+                        computerBoard,
+                        playerGUI,
+                        computerGUI
+                );
 
-        // 5. Start the Game
-        controller.setGameState();
-        controller.nextStep();
+        controller.startGame();
     }
 }
