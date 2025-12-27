@@ -1,99 +1,156 @@
 package Bingo;
 
-import java.awt.Color;
+import javax.swing.*;
+import java.awt.*;
+import java.util.Random;
 
 public class BingoBoardAnalyser {
-    BingoBoard board;
-    BingoBoard compBoard;
-    GameState gameState;
-    GreedyMoveStrategy strategy = new GreedyMoveStrategy();
 
-    public BingoBoardAnalyser(BingoBoard board, BingoBoard compBoard, GameState gameState) {
-        this.board = board;
-        this.compBoard = compBoard;
-        this.gameState = gameState;
+    BingoBoard player, computer;
+    BingoGUI playerGUI, computerGUI;
+
+    boolean[] pRow, pCol, pDiag;
+    boolean[] cRow, cCol, cDiag;
+
+    int playerLines = 0;
+    int computerLines = 0;
+    boolean gameOver = false;
+
+    Random rand = new Random();
+
+    public BingoBoardAnalyser(BingoBoard p, BingoBoard c,
+                              BingoGUI pg, BingoGUI cg) {
+        player = p;
+        computer = c;
+        playerGUI = pg;
+        computerGUI = cg;
+
+        int n = p.size;
+        pRow = new boolean[n];
+        pCol = new boolean[n];
+        pDiag = new boolean[2];
+
+        cRow = new boolean[n];
+        cCol = new boolean[n];
+        cDiag = new boolean[2];
     }
 
-    public void makeNextMove() {
-        // analyze the current board and make the best move
-        int move = strategy.findBestMove(compBoard);
-        System.out.println("Computer chooses: "+move);
-        applyMoveToBoth(move);
+    public void playerMove(int val) {
+        if (gameOver) return;
+
+        mark(player, val, Color.GREEN);
+        mark(computer, val, Color.RED);
+
+        updateLines(player, pRow, pCol, pDiag, true);
+        if (playerLines >= player.size) {
+            endGame("PLAYER WINS!");
+            return;
+        }
+
+        int compVal = computerPick();
+        if (compVal == -1) return;
+
+        mark(player, compVal, Color.GREEN);
+        mark(computer, compVal, Color.RED);
+
+        updateLines(computer, cRow, cCol, cDiag, false);
+        if (computerLines >= computer.size) {
+            endGame("COMPUTER WINS!");
+        }
     }
 
-    public void applyMoveToBoth(int value){
-        markValueOnBoard(board,value);
-        markValueOnBoard(compBoard, value);
-    }
-
-    private void markValueOnBoard(BingoBoard b, int val){
-        for(int i=0; i<5; i++){
-            for(int j=0; j<5; j++){
-                Node node = b.nodes[i][j];
-
-                if(node.value == val){
-                    node.marked = true;
-
-                    if(b.buttons != null && b.buttons[i][j] != null){
-                        b.buttons[i][j].setBackground(Color.GREEN);
-                        b.buttons[i][j].setEnabled(false);
-                    }
+    private void mark(BingoBoard b, int val, Color c) {
+        for (int i = 0; i < b.size; i++) {
+            for (int j = 0; j < b.size; j++) {
+                if (b.nodes[i][j].value == val && !b.nodes[i][j].marked) {
+                    b.nodes[i][j].marked = true;
+                    b.buttons[i][j].setBackground(c);
+                    b.buttons[i][j].setEnabled(false);
                     return;
                 }
             }
         }
     }
 
-    public boolean evaluateBoard() {
-        // evaluate if the current player has won the game
-        BingoBoard current = gameState.isPlayerTurn() ? board : compBoard;
-        int completedLines = 0;
+    private void updateLines(BingoBoard b,
+                             boolean[] rowDone,
+                             boolean[] colDone,
+                             boolean[] diagDone,
+                             boolean isPlayer) {
 
-        for(int i=0; i<5; i++){
-            if(checkRow(current,i)){
-                completedLines++;
+        int n = b.size;
+
+        for (int i = 0; i < n; i++) {
+            if (!rowDone[i] && fullRow(b, i)) {
+                rowDone[i] = true;
+                cross(isPlayer);
             }
-            if(checkColumn(current,i)){
-                completedLines++;
+            if (!colDone[i] && fullCol(b, i)) {
+                colDone[i] = true;
+                cross(isPlayer);
             }
         }
 
-        if(checkMainDiagonal(current)) completedLines++;
-        if(checkCrossDiagonal(current)) completedLines++;
-        
-        if(completedLines >= 5){
-            return true;
+        if (!diagDone[0] && fullDiag1(b)) {
+            diagDone[0] = true;
+            cross(isPlayer);
         }
-        else{
-            return false;
+        if (!diagDone[1] && fullDiag2(b)) {
+            diagDone[1] = true;
+            cross(isPlayer);
         }
     }
 
-    private boolean checkRow(BingoBoard b, int row){
-        for(int k=0; k<5; k++){
-            if(!b.nodes[row][k].marked) return false;
+    private void cross(boolean isPlayer) {
+        if (isPlayer) {
+            if (playerLines < player.size)
+                playerGUI.crossLetter(playerLines++);
+        } else {
+            if (computerLines < computer.size)
+                computerGUI.crossLetter(computerLines++);
         }
+    }
+
+    private boolean fullRow(BingoBoard b, int r) {
+        for (int j = 0; j < b.size; j++)
+            if (!b.nodes[r][j].marked) return false;
         return true;
     }
 
-    private boolean checkColumn(BingoBoard b, int col) {
-        for (int row = 0; row < 5; row++) {
-            if (!b.nodes[row][col].marked) return false;
-        }
+    private boolean fullCol(BingoBoard b, int c) {
+        for (int i = 0; i < b.size; i++)
+            if (!b.nodes[i][c].marked) return false;
         return true;
     }
 
-    private boolean checkMainDiagonal(BingoBoard b) {
-        for (int i = 0; i < 5; i++) {
+    private boolean fullDiag1(BingoBoard b) {
+        for (int i = 0; i < b.size; i++)
             if (!b.nodes[i][i].marked) return false;
-        }
         return true;
     }
 
-    private boolean checkCrossDiagonal(BingoBoard b) {
-        for (int i = 0; i < 5; i++) {
-            if (!b.nodes[i][4 - i].marked) return false;
-        }
+    private boolean fullDiag2(BingoBoard b) {
+        for (int i = 0; i < b.size; i++)
+            if (!b.nodes[i][b.size - 1 - i].marked) return false;
         return true;
+    }
+
+    private int computerPick() {
+        int tries = 100;
+        while (tries-- > 0) {
+            int i = rand.nextInt(computer.size);
+            int j = rand.nextInt(computer.size);
+            if (!computer.nodes[i][j].marked)
+                return computer.nodes[i][j].value;
+        }
+        return -1;
+    }
+
+    private void endGame(String msg) {
+        gameOver = true;
+        playerGUI.disableBoard();
+        computerGUI.disableBoard();
+        JOptionPane.showMessageDialog(null, msg);
     }
 }
+
