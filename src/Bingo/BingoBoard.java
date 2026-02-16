@@ -1,6 +1,8 @@
 package Bingo;
 
 import javax.swing.JButton;
+import java.util.ArrayList;
+import java.util.Collections;
 
 public class BingoBoard {
     int size;
@@ -14,13 +16,21 @@ public class BingoBoard {
         board = new int[size][size];
         nodes = new Node[size][size];
 
-        int num = 1;
+        ArrayList<Integer> numbers = new ArrayList<>();
+
+        for (int i = 1; i <= size * size; i++) {
+            numbers.add(i);
+        }
+
+        Collections.shuffle(numbers);
+
+        int index = 0;
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
-                board[i][j] = num++;
+                board[i][j] = numbers.get(index++);
                 nodes[i][j] = new Node(board[i][j]);
             }
         }
+
     }
 }
-
