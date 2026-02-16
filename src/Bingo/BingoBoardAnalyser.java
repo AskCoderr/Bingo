@@ -19,7 +19,7 @@ public class BingoBoardAnalyser {
     Random rand = new Random();
 
     public BingoBoardAnalyser(BingoBoard p, BingoBoard c,
-                              BingoGUI pg, BingoGUI cg) {
+            BingoGUI pg, BingoGUI cg) {
         player = p;
         computer = c;
         playerGUI = pg;
@@ -36,27 +36,55 @@ public class BingoBoardAnalyser {
     }
 
     public void playerMove(int val) {
-        if (gameOver) return;
+
+        if (gameOver)
+            return;
+
+        // PLAYER MOVE
+        playerGUI.setStatus("PLAYER TURN");
+        computerGUI.setStatus("PLAYER TURN");
 
         mark(player, val, Color.GREEN);
-        mark(computer, val, Color.RED);
+        mark(computer, val, Color.GREEN);
 
         updateLines(player, pRow, pCol, pDiag, true);
+
         if (playerLines >= player.size) {
             endGame("PLAYER WINS!");
             return;
         }
 
-        int compVal = computerPick();
-        if (compVal == -1) return;
+        // COMPUTER THINKING
+        playerGUI.setStatus("COMPUTER THINKING...");
+        computerGUI.setStatus("COMPUTER THINKING...");
 
-        mark(player, compVal, Color.GREEN);
-        mark(computer, compVal, Color.RED);
+        javax.swing.Timer timer = new javax.swing.Timer(800, e -> {
 
-        updateLines(computer, cRow, cCol, cDiag, false);
-        if (computerLines >= computer.size) {
-            endGame("COMPUTER WINS!");
-        }
+            int compVal = computerPick();
+            if (compVal == -1)
+                return;
+
+            // COMPUTER MOVE
+            mark(player, compVal, Color.RED);
+            mark(computer, compVal, Color.RED);
+
+            updateLines(computer, cRow, cCol, cDiag, false);
+
+            if (computerLines >= computer.size) {
+                endGame("COMPUTER WINS!");
+                return;
+            }
+
+            // BACK TO PLAYER
+            if (!gameOver) {
+                playerGUI.setStatus("PLAYER TURN");
+                computerGUI.setStatus("PLAYER TURN");
+            }
+
+        });
+
+        timer.setRepeats(false);
+        timer.start();
     }
 
     private void mark(BingoBoard b, int val, Color c) {
@@ -73,31 +101,54 @@ public class BingoBoardAnalyser {
     }
 
     private void updateLines(BingoBoard b,
-                             boolean[] rowDone,
-                             boolean[] colDone,
-                             boolean[] diagDone,
-                             boolean isPlayer) {
+            boolean[] rowDone,
+            boolean[] colDone,
+            boolean[] diagDone,
+            boolean isPlayer) {
 
         int n = b.size;
 
         for (int i = 0; i < n; i++) {
+
             if (!rowDone[i] && fullRow(b, i)) {
                 rowDone[i] = true;
                 cross(isPlayer);
+
+                if (isPlayer)
+                    playerGUI.markRowDone(i);
+                else
+                    computerGUI.markRowDone(i);
             }
+
             if (!colDone[i] && fullCol(b, i)) {
                 colDone[i] = true;
                 cross(isPlayer);
+
+                if (isPlayer)
+                    playerGUI.markColDone(i);
+                else
+                    computerGUI.markColDone(i);
             }
         }
 
         if (!diagDone[0] && fullDiag1(b)) {
             diagDone[0] = true;
             cross(isPlayer);
+
+            if (isPlayer)
+                playerGUI.markDiag1Done();
+            else
+                computerGUI.markDiag1Done();
         }
+
         if (!diagDone[1] && fullDiag2(b)) {
             diagDone[1] = true;
             cross(isPlayer);
+
+            if (isPlayer)
+                playerGUI.markDiag2Done();
+            else
+                computerGUI.markDiag2Done();
         }
     }
 
@@ -113,25 +164,29 @@ public class BingoBoardAnalyser {
 
     private boolean fullRow(BingoBoard b, int r) {
         for (int j = 0; j < b.size; j++)
-            if (!b.nodes[r][j].marked) return false;
+            if (!b.nodes[r][j].marked)
+                return false;
         return true;
     }
 
     private boolean fullCol(BingoBoard b, int c) {
         for (int i = 0; i < b.size; i++)
-            if (!b.nodes[i][c].marked) return false;
+            if (!b.nodes[i][c].marked)
+                return false;
         return true;
     }
 
     private boolean fullDiag1(BingoBoard b) {
         for (int i = 0; i < b.size; i++)
-            if (!b.nodes[i][i].marked) return false;
+            if (!b.nodes[i][i].marked)
+                return false;
         return true;
     }
 
     private boolean fullDiag2(BingoBoard b) {
         for (int i = 0; i < b.size; i++)
-            if (!b.nodes[i][b.size - 1 - i].marked) return false;
+            if (!b.nodes[i][b.size - 1 - i].marked)
+                return false;
         return true;
     }
 
@@ -153,4 +208,3 @@ public class BingoBoardAnalyser {
         JOptionPane.showMessageDialog(null, msg);
     }
 }
-
