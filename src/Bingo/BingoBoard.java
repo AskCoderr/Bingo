@@ -28,7 +28,7 @@ public class BingoBoard {
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
                 board[i][j] = numbers.get(index++);
-                nodes[i][j] = new Node(board[i][j]);
+                nodes[i][j] = new Node(board[i][j], i, j);
             }
         }
 

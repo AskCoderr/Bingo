@@ -17,6 +17,9 @@ public class BingoBoardAnalyser {
     boolean gameOver = false;
 
     Random rand = new Random();
+    
+    // AI STRATEGY (Dynamic Programming)
+    DPMoveStrategy ai = new DPMoveStrategy();
 
     public BingoBoardAnalyser(BingoBoard p, BingoBoard c,
             BingoGUI pg, BingoGUI cg) {
@@ -60,7 +63,9 @@ public class BingoBoardAnalyser {
 
         javax.swing.Timer timer = new javax.swing.Timer(800, e -> {
 
-            int compVal = computerPick();
+
+            // DP & MEMOIZATION: Use intelligent strategy
+            int compVal = ai.findBestMove(computer, player);
             if (compVal == -1)
                 return;
 
@@ -88,6 +93,7 @@ public class BingoBoardAnalyser {
     }
 
     private void mark(BingoBoard b, int val, Color c) {
+        // LINEAR SEARCH
         for (int i = 0; i < b.size; i++) {
             for (int j = 0; j < b.size; j++) {
                 if (b.nodes[i][j].value == val && !b.nodes[i][j].marked) {
@@ -162,32 +168,62 @@ public class BingoBoardAnalyser {
         }
     }
 
-    private boolean fullRow(BingoBoard b, int r) {
-        for (int j = 0; j < b.size; j++)
-            if (!b.nodes[r][j].marked)
-                return false;
-        return true;
+    // DIVIDE AND CONQUER: Recursive Line Checks
+    // Recurrence Relation: T(n) = 2T(n/2) + O(1)
+    
+    // Helper function for Divide and Conquer
+    private boolean checkRange(Node[] line, int start, int end) {
+        // Divide Step: Check range bounds/base case
+        if (start == end) {
+            return line[start].marked;
+        }
+        
+        // Conquer Step: Recursively check left and right halves
+        int mid = (start + end) / 2;
+        boolean left = checkRange(line, start, mid);
+        boolean right = checkRange(line, mid + 1, end);
+        
+        // Combine Step: Logical AND
+        return left && right;
     }
 
+    private boolean fullRow(BingoBoard b, int r) {
+        return checkRange(b.nodes[r], 0, b.size - 1);
+    }
+    
     private boolean fullCol(BingoBoard b, int c) {
-        for (int i = 0; i < b.size; i++)
-            if (!b.nodes[i][c].marked)
-                return false;
-        return true;
+        // Need to construct a temporary array/view for column to use generic helper
+        // Or implement specific helper. Implementing specific helper to avoid O(n) copy.
+        return checkColDnC(b.nodes, c, 0, b.size - 1);
+    }
+
+    private boolean checkColDnC(Node[][] nodes, int col, int start, int end) {
+        if (start == end) return nodes[start][col].marked;
+        int mid = (start + end) / 2;
+        return checkColDnC(nodes, col, start, mid) && 
+               checkColDnC(nodes, col, mid + 1, end);
     }
 
     private boolean fullDiag1(BingoBoard b) {
-        for (int i = 0; i < b.size; i++)
-            if (!b.nodes[i][i].marked)
-                return false;
-        return true;
+        return checkDiag1DnC(b.nodes, 0, b.size - 1);
+    }
+    
+    private boolean checkDiag1DnC(Node[][] nodes, int start, int end) {
+        if (start == end) return nodes[start][start].marked;
+        int mid = (start + end) / 2;
+        return checkDiag1DnC(nodes, start, mid) && 
+               checkDiag1DnC(nodes, mid + 1, end);
     }
 
     private boolean fullDiag2(BingoBoard b) {
-        for (int i = 0; i < b.size; i++)
-            if (!b.nodes[i][b.size - 1 - i].marked)
-                return false;
-        return true;
+        return checkDiag2DnC(b.nodes, 0, b.size - 1, b.size);
+    }
+    
+    private boolean checkDiag2DnC(Node[][] nodes, int start, int end, int size) {
+        if (start == end) return nodes[start][size - 1 - start].marked;
+        int mid = (start + end) / 2;
+        return checkDiag2DnC(nodes, start, mid, size) && 
+               checkDiag2DnC(nodes, mid + 1, end, size);
     }
 
     private int computerPick() {
