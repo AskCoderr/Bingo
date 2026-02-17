@@ -1,45 +1,52 @@
 package Bingo;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class DPMoveStrategy {
 
-    // MEMOIZATION TABLE: Stores computed scores for board states
-    private Map<String, Integer> memo = new HashMap<>();
-
+    /**
+     * @param computer The AI's board
+     * @param player   The User's board
+     * @return The best number to call
+     */
     public int findBestMove(BingoBoard computer, BingoBoard player) {
+        int size = computer.size;
+        
+        // --- MANUAL DIFFICULTY TUNING ---
+        // Increase OFFENSE to make the AI focus on its own win.
+        // Increase DEFENSE to make the AI block the player more aggressively.
+        double OFFENSE_WEIGHT = 1.0; 
+        double DEFENSE_WEIGHT = 0.8; 
+        // --------------------------------
+
+        int[] compMemo = new int[2 * size + 2];
+        int[] playerMemo = new int[2 * size + 2];
+
+        // 1. Initial State Memoization - O(N^2)
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                if (computer.nodes[i][j].marked) updateMemo(compMemo, i, j, size);
+                if (player.nodes[i][j].marked) updateMemo(playerMemo, i, j, size);
+            }
+        }
+
         int bestVal = -1;
-        int maxScore = Integer.MIN_VALUE;
+        double maxScore = Double.NEGATIVE_INFINITY;
 
-        // Iterate over all possible moves (unmarked nodes)
-        for (int i = 0; i < computer.size; i++) {
-            for (int j = 0; j < computer.size; j++) {
+        // 2. Selection Loop - O(N^2)
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                // Only consider numbers the AI hasn't marked yet
                 if (!computer.nodes[i][j].marked) {
-                    
                     int val = computer.nodes[i][j].value;
-                    
-                    // Temporarily mark to evaluate state on BOTH boards
-                    // Note: In a real game, 'val' is marked on both boards.
-                    // We need to simulate this.
-                    
-                    boolean playerHadIt = markSimulated(player, val);
-                    computer.nodes[i][j].marked = true;
-                    
-                    // DP Step: Evaluate resulting state
-                    int compScore = evaluateState(computer);
-                    int playerScore = evaluateState(player);
-                    
-                    // HEURISTIC: Net Score = My Score - (Weight * Opponent Score)
-                    // Adjusted to prioritize WINNING (lower weight on defense)
-                    int netScore = compScore - (int)(0.5 * playerScore);
-                    
-                    // Backtrack
-                    computer.nodes[i][j].marked = false;
-                    unmarkSimulated(player, val, playerHadIt);
 
-                    if (netScore > maxScore) {
-                        maxScore = netScore;
+                    // DP Lookups (O(1)) - Get pre-calculated line strengths
+                    int compGain = getPotentialGain(compMemo, i, j, size);
+                    int playerGain = getPotentialGain(playerMemo, i, j, size);
+
+                    // THE FORMULA: High score = Best Move
+                    double totalScore = (OFFENSE_WEIGHT * compGain) + (DEFENSE_WEIGHT * playerGain);
+
+                    if (totalScore > maxScore) {
+                        maxScore = totalScore;
                         bestVal = val;
                     }
                 }
@@ -47,99 +54,21 @@ public class DPMoveStrategy {
         }
         return bestVal;
     }
-    
-    private boolean markSimulated(BingoBoard b, int val) {
-        for(int i=0; i<b.size; i++) {
-            for(int j=0; j<b.size; j++) {
-                if(b.nodes[i][j].value == val) {
-                    if(!b.nodes[i][j].marked) {
-                        b.nodes[i][j].marked = true;
-                        return true; // We marked it
-                    }
-                    return false; // Already marked (shouldn't happen for valid move)
-                }
-            }
-        }
-        return false;
+
+    private void updateMemo(int[] memo, int r, int c, int size) {
+        memo[r]++; // Row
+        memo[size + c]++; // Column
+        if (r == c) memo[2 * size]++; // Main Diagonal
+        if (r + c == size - 1) memo[2 * size + 1]++; // Anti-Diagonal
     }
 
-    private void unmarkSimulated(BingoBoard b, int val, boolean actuallyMarked) {
-        if(!actuallyMarked) return;
-        for(int i=0; i<b.size; i++) {
-            for(int j=0; j<b.size; j++) {
-                if(b.nodes[i][j].value == val) {
-                    b.nodes[i][j].marked = false;
-                    return;
-                }
-            }
-        }
-    }
-
-    // TOP-DOWN Check with Memoization
-    private int evaluateState(BingoBoard b) {
-        String stateKey = generateStateKey(b);
-        
-        // Memoization Lookup
-        if (memo.containsKey(stateKey)) {
-            return memo.get(stateKey);
-        }
-        
-        // If not in memo, calculate score
-        int score = calculateScore(b);
-        
-        // Store in Memo table
-        memo.put(stateKey, score);
-        
-        return score;
-    }
-
-    private String generateStateKey(BingoBoard b) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < b.size; i++) {
-            for (int j = 0; j < b.size; j++) {
-                sb.append(b.nodes[i][j].marked ? "1" : "0");
-            }
-        }
-        return sb.toString();
-    }
-
-    // Heuristic score calculation (simulating "cost" or "value" of state)
-    // Higher score = closer to winning
-    private int calculateScore(BingoBoard b) {
-        int score = 0;
-        int size = b.size;
-
-        // Rows
-        for (int i = 0; i < size; i++) score += evaluateLine(b.nodes[i]);
-        
-        // Cols
-        for (int i = 0; i < size; i++) {
-            Node[] col = new Node[size];
-            for(int k=0; k<size; k++) col[k] = b.nodes[k][i];
-            score += evaluateLine(col);
-        }
-        
-        // Diag 1
-        Node[] d1 = new Node[size];
-        for(int i=0; i<size; i++) d1[i] = b.nodes[i][i];
-        score += evaluateLine(d1);
-
-        // Diag 2
-        Node[] d2 = new Node[size];
-        for(int i=0; i<size; i++) d2[i] = b.nodes[i][size - 1 - i];
-        score += evaluateLine(d2);
-
-        return score;
-    }
-
-    private int evaluateLine(Node[] line) {
-        int markedCount = 0;
-        for (Node n : line) {
-            if (n.marked) markedCount++;
-        }
-        // Exponential weighting: 4 marked is MUCH better than 3
-        // WINNING LINE (Size 5) should be MASSIVE
-        if (markedCount == line.length) return 1000000; 
-        return (int) Math.pow(10, markedCount);
+    private int getPotentialGain(int[] memo, int r, int c, int size) {
+        int gain = 0;
+        // Exponential scoring: 10^count means 4-in-a-row is MUCH better than 3-in-a-row
+        gain += (int) Math.pow(10, memo[r]);
+        gain += (int) Math.pow(10, memo[size + c]);
+        if (r == c) gain += (int) Math.pow(10, memo[2 * size]);
+        if (r + c == size - 1) gain += (int) Math.pow(10, memo[2 * size + 1]);
+        return gain;
     }
 }
