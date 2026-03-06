@@ -9,20 +9,23 @@ public class BingoGameController {
     public BingoGameController(BingoBoard playerBoard,
                                BingoBoard computerBoard,
                                BingoGUI playerGUI,
-                               BingoGUI computerGUI) {
+                               BingoGUI computerGUI,
+                               MoveStrategy strategy) {
 
-        this.playerBoard = playerBoard;
+        this.playerBoard   = playerBoard;
         this.computerBoard = computerBoard;
-        this.playerGUI = playerGUI;
-        this.computerGUI = computerGUI;
+        this.playerGUI     = playerGUI;
+        this.computerGUI   = computerGUI;
 
         this.analyser = new BingoBoardAnalyser(
                 playerBoard, computerBoard,
-                playerGUI, computerGUI
+                playerGUI, computerGUI,
+                strategy
         );
 
+        // Only wire the PLAYER board's buttons to fire moves.
+        // The computer board is view-only (no click listeners).
         playerGUI.setAnalyser(analyser);
-        computerGUI.setAnalyser(analyser);
     }
 
     public void startGame() {
