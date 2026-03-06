@@ -1,6 +1,6 @@
 package Bingo;
 
-public class DPMoveStrategy {
+public class DPMoveStrategy implements MoveStrategy {
 
     /**
      * @param computer The AI's board
